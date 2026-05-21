@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import Link from "next/link";
 import { 
   Dices, 
   Users, 
@@ -131,7 +132,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Groups Panel */}
-          <div className="glass-card p-6 flex flex-col gap-4 border border-slate-800/80 hover:border-brand-500/20 transition-all group">
+          <Link href="/dashboard/groups" className="glass-card p-6 flex flex-col gap-4 border border-slate-800/80 hover:border-brand-500/20 transition-all group cursor-pointer text-left">
             <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20 w-fit">
               <Users className="w-6 h-6" />
             </div>
@@ -142,9 +143,9 @@ export default function DashboardPage() {
               Create playing groups, view leaderboards, and aggregate historical stats.
             </p>
             <div className="mt-auto pt-4 border-t border-slate-900 text-xs text-slate-500">
-              No groups joined
+              Manage groups
             </div>
-          </div>
+          </Link>
 
           {/* Ludoteca Panel */}
           <div className="glass-card p-6 flex flex-col gap-4 border border-slate-800/80 hover:border-brand-500/20 transition-all group">
