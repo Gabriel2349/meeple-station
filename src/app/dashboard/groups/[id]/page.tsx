@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { GroupDetails, GroupRepository } from "@/repositories/GroupRepository";
 import { 
   Users, 
@@ -29,7 +29,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const groupId = resolvedParams.id;
 
-  const { user, isGuest, checkSession, isLoading: isAuthLoading } = useAuthStore();
+  const { user, isGuest, isLoading: isAuthLoading } = useRequireAuth(false); // groups require real account
   
   const [details, setDetails] = useState<GroupDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,21 +44,10 @@ export default function GroupDetailsPage({ params }: PageProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null); // holds member_id being removed or 'delete'/'leave'
 
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  useEffect(() => {
-    // Redirect if not logged in (Groups not accessible to Guests or unauthenticated)
-    if (!isAuthLoading && (!user || isGuest)) {
-      router.push(isGuest ? "/dashboard/groups" : "/");
-    }
-  }, [user, isGuest, isAuthLoading, router]);
-
-  useEffect(() => {
     if (user && groupId) {
       fetchGroupDetails();
     }
-  }, [user, groupId]);
+  }, [user, groupId, isAuthLoading]);
 
   const fetchGroupDetails = async () => {
     try {

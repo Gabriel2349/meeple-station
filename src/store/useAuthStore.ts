@@ -14,7 +14,9 @@ interface AuthState {
   guestName: string | null;
   isGuest: boolean;
   isLoading: boolean;
+  _hasHydrated: boolean;
   error: string | null;
+  setHasHydrated: (val: boolean) => void;
   setGuest: (name: string) => void;
   setUser: (user: Profile | null) => void;
   logout: () => Promise<void>;
@@ -27,8 +29,13 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       guestName: null,
       isGuest: false,
-      isLoading: false,
+      isLoading: true,
+      _hasHydrated: false,
       error: null,
+
+      setHasHydrated: (val: boolean) => {
+        set({ _hasHydrated: val });
+      },
 
       setGuest: (name: string) => {
         set({
@@ -90,7 +97,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (err: any) {
           console.error("Session check error:", err);
-          // Don't force clear session immediately in case it's a network glitch
+          // Don't force clear — may be a network glitch
         } finally {
           set({ isLoading: false });
         }
@@ -103,6 +110,10 @@ export const useAuthStore = create<AuthState>()(
         guestName: state.guestName,
         isGuest: state.isGuest,
       }),
+      // Called once Zustand finishes reading state from localStorage
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

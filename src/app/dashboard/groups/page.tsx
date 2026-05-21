@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Group, GroupRepository } from "@/repositories/GroupRepository";
 import { 
@@ -12,14 +13,14 @@ import {
   Loader2, 
   AlertCircle, 
   Lock, 
-  MessageSquare,
   ArrowRight,
   X
 } from "lucide-react";
 
 export default function GroupsPage() {
   const router = useRouter();
-  const { user, isGuest, checkSession, isLoading: isAuthLoading } = useAuthStore();
+  const { user, isGuest, isLoading: isAuthLoading } = useRequireAuth(true);
+  const { guestName } = useAuthStore();
   
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,24 +34,13 @@ export default function GroupsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  useEffect(() => {
-    // If not authenticated (at all), redirect to home
-    if (!isAuthLoading && !user && !isGuest) {
-      router.push("/");
-    }
-  }, [user, isGuest, isAuthLoading, router]);
-
-  useEffect(() => {
-    // Only fetch groups if authenticated as a real user
+    if (isAuthLoading) return;
     if (user) {
       fetchGroups();
     } else if (isGuest) {
       setLoading(false);
     }
-  }, [user, isGuest]);
+  }, [user, isGuest, isAuthLoading]);
 
   const fetchGroups = async () => {
     try {
@@ -92,7 +82,7 @@ export default function GroupsPage() {
   };
 
   // 1. Loading Session state
-  if (isAuthLoading) {
+  if (isAuthLoading || loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-white min-h-screen">
         <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
