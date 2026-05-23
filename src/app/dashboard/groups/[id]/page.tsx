@@ -90,7 +90,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
 
   const handleRemoveMember = async (memberId: string, username: string) => {
     if (!details) return;
-    const confirmRemove = confirm(`Are you sure you want to remove ${username} from the circle?`);
+    const confirmRemove = confirm(`Are you sure you want to remove ${username} from the group?`);
     if (!confirmRemove) return;
 
     try {
@@ -106,7 +106,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
 
   const handleLeaveGroup = async () => {
     if (!details || !user) return;
-    const confirmLeave = confirm("Are you sure you want to leave this gaming circle?");
+    const confirmLeave = confirm("Are you sure you want to leave this gaming group?");
     if (!confirmLeave) return;
 
     try {
@@ -121,7 +121,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
 
   const handleDeleteGroup = async () => {
     if (!details) return;
-    const confirmDelete = confirm("CRITICAL WARNING: Are you sure you want to delete this circle? This will remove all history and members. This action is irreversible!");
+    const confirmDelete = confirm("CRITICAL WARNING: Are you sure you want to delete this group? This will remove all history and members. This action is irreversible!");
     if (!confirmDelete) return;
 
     try {
@@ -190,7 +190,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Delete Circle / Leave Circle Buttons in Navbar for desktop */}
+        {/* Delete Group / Leave Group Buttons in Navbar for desktop */}
         <div className="ml-auto hidden sm:block">
           {isAdmin ? (
             <button
@@ -203,7 +203,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
               ) : (
                 <Trash2 className="w-4 h-4" />
               )}
-              Delete Circle
+              Delete Group
             </button>
           ) : (
             <button
@@ -216,7 +216,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
               ) : (
                 <LogOut className="w-4 h-4" />
               )}
-              Leave Circle
+              Leave Group
             </button>
           )}
         </div>
@@ -230,7 +230,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
           {/* Info Card */}
           <div className="glass-card p-6 flex flex-col gap-4 border-slate-900">
             <h2 className="font-display font-bold text-lg text-white border-b border-slate-900 pb-2">
-              Circle Info
+              Group Info
             </h2>
             <div className="flex flex-col gap-3 text-sm">
               <div>
@@ -254,7 +254,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
                 Add Member
               </h2>
               <p className="text-xs text-slate-400">
-                Invite a registered user to join this circle by entering their exact username.
+                Invite a registered user to join this group by entering their exact username.
               </p>
 
               <form onSubmit={handleAddMember} className="flex flex-col gap-3 mt-1 text-left">
@@ -314,16 +314,16 @@ export default function GroupDetailsPage({ params }: PageProps) {
                 className="w-full bg-red-950/20 hover:bg-red-950/40 text-red-400 font-medium py-3 px-4 rounded-xl border border-red-950/30 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
                 <Trash2 className="w-4 h-4" />
-                Delete Circle
+                Delete Group
               </button>
             ) : (
               <button
                 onClick={handleLeaveGroup}
                 disabled={actionLoading !== null}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium py-3 px-4 rounded-xl border border-slate-850 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                className="w-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-medium py-3 px-4 rounded-xl border border-slate-850 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
                 <LogOut className="w-4 h-4" />
-                Leave Circle
+                Leave Group
               </button>
             )}
           </div>
@@ -334,7 +334,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
           <div className="glass-card p-6 flex flex-col gap-4 border-slate-900 h-full">
             <h2 className="font-display font-bold text-lg text-white border-b border-slate-900 pb-2 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
-              Members Circle
+              Members List
             </h2>
 
             <div className="flex flex-col gap-3 mt-2">
@@ -385,7 +385,7 @@ export default function GroupDetailsPage({ params }: PageProps) {
                           <button
                             onClick={() => handleRemoveMember(member.profile.id, member.profile.username)}
                             disabled={actionLoading === member.profile.id}
-                            title="Remove from circle"
+                            title="Remove from group"
                             className="p-2 bg-slate-900/50 hover:bg-red-950/20 text-slate-400 hover:text-red-400 border border-slate-850 hover:border-red-950/20 rounded-lg transition-all cursor-pointer disabled:opacity-50"
                           >
                             {actionLoading === member.profile.id ? (
