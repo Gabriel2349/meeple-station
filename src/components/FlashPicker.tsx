@@ -21,8 +21,8 @@ export function FlashPicker({ players, onClose, onWinnerChosen }: FlashPickerPro
 
     // 1. Choose winner index
     const winnerIdx = Math.floor(Math.random() * players.length);
-    // 2. We want to do 3 full spins + land on the winner
-    const spins = 3;
+    // 2. We want to do 4 full spins + land on the winner (feels more premium)
+    const spins = 4;
     const totalSteps = players.length * spins + winnerIdx;
 
     let currentStep = 0;
@@ -41,16 +41,15 @@ export function FlashPicker({ players, onClose, onWinnerChosen }: FlashPickerPro
 
       currentStep++;
       
-      // Decelerate using an ease-out curve (quadratic/cubic)
-      // Progress goes from 0 to 1
+      // Decelerate using a smooth power curve
       const progress = currentStep / totalSteps;
-      const delay = 40 + 360 * Math.pow(progress, 3); // Fast 40ms -> Slow 400ms
+      const delay = 100 + 700 * Math.pow(progress, 2.5); // Slower start (100ms) -> Premium decelerated stop (800ms)
 
       timeoutId = setTimeout(tick, delay);
     };
 
     // Kick off animation
-    timeoutId = setTimeout(tick, 40);
+    timeoutId = setTimeout(tick, 100);
 
     return () => {
       clearTimeout(timeoutId);

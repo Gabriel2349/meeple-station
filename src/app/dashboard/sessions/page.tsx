@@ -21,11 +21,13 @@ import {
 function SessionCard({
   session,
   t,
+  isLocal = false,
 }: {
-  session: GameSession;
+  session: any;
   t: Translations;
+  isLocal?: boolean;
 }) {
-  const players = session.session_players || [];
+  const players = isLocal ? session.players || [] : session.session_players || [];
   const isActive = session.status === "active";
 
   const getDuration = () => {
@@ -38,11 +40,11 @@ function SessionCard({
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
-  const winner = players.find((p) => p.position === 1)?.display_name;
+  const winner = players.find((p: any) => p.position === 1)?.display_name;
 
   return (
     <Link
-      href={`/dashboard/sessions/${session.id}`}
+      href={isLocal ? `/dashboard/sessions/local?id=${session.id}` : `/dashboard/sessions/${session.id}`}
       className="glass-card p-5 border border-slate-800/80 hover:border-brand-500/20 transition-all flex flex-col gap-3 group cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
@@ -98,7 +100,7 @@ function SessionCard({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {players.map((p) => (
+        {players.map((p: any) => (
           <span
             key={p.id}
             className="flex items-center gap-1.5 text-[11px] bg-slate-900/60 border border-slate-800/80 rounded-lg px-2.5 py-1 text-slate-300"
@@ -149,6 +151,7 @@ export default function SessionsPage() {
 
   const active = sessions.filter((s) => s.status === "active");
   const finished = sessions.filter((s) => s.status === "finished");
+  const hasAnySession = isGuest ? (!!guestStore.session || guestStore.history.length > 0) : sessions.length > 0;
 
   if (isAuthLoading || (loading && user)) {
     return (
@@ -193,7 +196,7 @@ export default function SessionsPage() {
       ) : (
         <>
           {/* Guest active session */}
-          {isGuest && guestStore.session && (
+          {isGuest && guestStore.session && guestStore.session.status === "active" && (
             <section className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
@@ -250,22 +253,26 @@ export default function SessionsPage() {
           )}
 
           {/* Finished sessions */}
-          {finished.length > 0 && (
+          {((!isGuest && finished.length > 0) || (isGuest && guestStore.history.length > 0)) && (
             <section className="flex flex-col gap-4">
               <h2 className="font-display font-bold text-white text-lg flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-slate-500" />
                 {t.sessions.history}
               </h2>
               <div className="flex flex-col gap-3">
-                {finished.map((s) => (
-                  <SessionCard key={s.id} session={s} t={t} />
-                ))}
+                {isGuest
+                  ? guestStore.history.map((s) => (
+                      <SessionCard key={s.id} session={s} t={t} isLocal={true} />
+                    ))
+                  : finished.map((s) => (
+                      <SessionCard key={s.id} session={s} t={t} />
+                    ))}
               </div>
             </section>
           )}
 
           {/* Empty state */}
-          {sessions.length === 0 && !guestStore.session && (
+          {!hasAnySession && (
             <div className="glass-card p-14 text-center flex flex-col items-center gap-4 border-slate-900 mt-4">
               <div className="p-4 bg-slate-900/50 rounded-full border border-slate-800 text-slate-500">
                 <Gamepad2 className="w-10 h-10" />

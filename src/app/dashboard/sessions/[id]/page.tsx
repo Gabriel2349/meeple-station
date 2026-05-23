@@ -323,10 +323,10 @@ export default function SessionDetailPage({ params }: PageProps) {
           event: "UPDATE",
           schema: "public",
           table: "session_players",
-          filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
           const updated = payload.new as SessionPlayer;
+          if (updated.session_id !== sessionId) return;
           setPlayers((prev) =>
             prev.map((p) =>
               p.id === updated.id
@@ -348,9 +348,10 @@ export default function SessionDetailPage({ params }: PageProps) {
           event: "UPDATE",
           schema: "public",
           table: "game_sessions",
-          filter: `id=eq.${sessionId}`,
         },
-        () => {
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.id !== sessionId) return;
           // Session updated (e.g. finished by another device) — reload
           loadSession();
         }
@@ -597,6 +598,52 @@ export default function SessionDetailPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Round Counter */}
+      {session.has_rounds && (
+        <div className="glass-card border-slate-800/60 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/20">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                {t.sessions.round}
+              </span>
+              <span className="font-display font-bold text-lg text-white">
+                #{session.current_round}
+              </span>
+            </div>
+          </div>
+
+          {isActive && isOwner && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  const next = Math.max(1, session.current_round - 1);
+                  await SessionRepository.updateSessionRound(session.id, next);
+                  setSession((prev) => (prev ? { ...prev, current_round: next } : null));
+                }}
+                disabled={session.current_round <= 1}
+                className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer disabled:opacity-30"
+                title={t.sessions.prevRound}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={async () => {
+                  const next = session.current_round + 1;
+                  await SessionRepository.updateSessionRound(session.id, next);
+                  setSession((prev) => (prev ? { ...prev, current_round: next } : null));
+                }}
+                className="py-1.5 px-4 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-xl transition-all cursor-pointer text-xs font-bold"
+              >
+                {t.sessions.nextRound}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Turn Timer */}
       {isActive && (
         <TimerPanel players={players} sessionId={sessionId} t={t} onTimerAction={sendTimerAction} />
@@ -622,10 +669,12 @@ export default function SessionDetailPage({ params }: PageProps) {
               <div className="flex items-center gap-4">
                 {/* Rank badge */}
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm border shrink-0 ${
-                  rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30"
-                  : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600"
-                  : rank === 2 ? "bg-amber-950/40 text-amber-600 border-amber-900/30"
-                  : "bg-slate-900 text-slate-400 border-slate-800"
+                  isActive
+                    ? "bg-slate-900 text-slate-400 border-slate-800"
+                    : rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30"
+                    : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600"
+                    : rank === 2 ? "bg-amber-950/40 text-amber-600 border-amber-900/30"
+                    : "bg-slate-900 text-slate-400 border-slate-800"
                 }`}>
                   {rank + 1}
                 </div>

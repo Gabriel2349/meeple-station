@@ -127,7 +127,7 @@ export default function GroupsPage() {
             <Users className="w-6 h-6 text-blue-400" />
             {t.groups.title}
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Organize match sessions, compare stats, and invite playing partners.</p>
+          <p className="text-slate-400 text-sm mt-1">{t.groups.subtitle}</p>
         </div>
         <button
           onClick={handleCreateClick}

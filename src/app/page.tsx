@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useLanguageStore } from "@/store/useLanguageStore";
 import { 
   Dices, 
   Users, 
@@ -18,6 +19,7 @@ import {
 
 export default function Home() {
   const { user, isGuest, guestName, checkSession, logout } = useAuthStore();
+  const { language, setLanguage, t } = useLanguageStore();
 
   useEffect(() => {
     checkSession();
@@ -41,21 +43,29 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Language toggle */}
+          <button
+            onClick={() => setLanguage(language === "es" ? "en" : "es")}
+            className="px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
+          >
+            {language === "es" ? "EN" : "ES"}
+          </button>
+
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <span className="text-xs text-slate-400 hidden sm:inline">
-                Playing as <strong className="text-slate-200">{displayName}</strong>
+                {language === "es" ? "Jugando como " : "Playing as "}<strong className="text-slate-200">{displayName}</strong>
               </span>
               <Link 
                 href="/dashboard"
                 className="py-2 px-4 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl border border-brand-600/30 hover:border-brand-500/50 shadow-md transition-all flex items-center gap-1.5"
               >
-                Go to Dashboard
+                {t.landing.dashboardBtn}
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <button
                 onClick={() => logout()}
-                title="Log Out"
+                title={t.auth.logout}
                 className="p-2.5 bg-slate-900 hover:bg-red-950/20 text-slate-400 hover:text-red-400 border border-slate-850 rounded-xl transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
@@ -67,13 +77,13 @@ export default function Home() {
                 href="/auth/login"
                 className="py-2 px-3 text-slate-300 hover:text-white text-sm font-medium transition-colors"
               >
-                Login
+                {t.landing.loginBtn}
               </Link>
               <Link 
                 href="/auth/register"
                 className="py-2 px-4 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl border border-brand-600/30 hover:border-brand-500/50 shadow-md transition-all"
               >
-                Register
+                {t.landing.registerBtn}
               </Link>
             </div>
           )}
@@ -87,15 +97,15 @@ export default function Home() {
 
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold tracking-wide uppercase">
           <Sparkles className="w-3.5 h-3.5" />
-          The ultimate game companion app
+          {t.landing.heroBadge}
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-display font-extrabold text-white tracking-tight max-w-3xl leading-none">
-          Track. Score. <span className="bg-gradient-to-r from-brand-400 to-brand-500 bg-clip-text text-transparent">Conquer.</span>
+          {t.landing.heroTitle}<span className="bg-gradient-to-r from-brand-400 to-brand-500 bg-clip-text text-transparent">{t.landing.heroTitleHighlight}</span>
         </h1>
         
         <p className="text-slate-400 text-base sm:text-lg max-w-2xl leading-relaxed">
-          MeepleStation is your all-in-one digital assistant for board game sessions. Manage scores, track play times, sync with BoardGameGeek, and compete in gaming circles.
+          {t.landing.heroSubtitle}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-auto">
@@ -104,7 +114,7 @@ export default function Home() {
               href="/dashboard"
               className="py-3.5 px-8 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-semibold rounded-xl border border-brand-600/30 hover:border-brand-500/50 shadow-lg shadow-brand-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              Enter Dashboard
+              {t.landing.dashboardBtn}
               <ArrowRight className="w-5 h-5" />
             </Link>
           ) : (
@@ -113,14 +123,14 @@ export default function Home() {
                 href="/auth/register"
                 className="py-3.5 px-8 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-semibold rounded-xl border border-brand-600/30 hover:border-brand-500/50 shadow-lg shadow-brand-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                Get Started (Free)
+                {t.landing.startFreeBtn}
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link 
                 href="/auth/guest"
                 className="py-3.5 px-8 bg-slate-900/50 hover:bg-slate-800 text-slate-300 border border-slate-850 hover:border-slate-700 font-semibold rounded-xl transition-all flex items-center justify-center cursor-pointer"
               >
-                Play as Guest
+                {t.landing.playGuestBtn}
               </Link>
             </>
           )}
@@ -136,7 +146,7 @@ export default function Home() {
               <span className="w-3 h-3 rounded-full bg-yellow-500/60" />
               <span className="w-3 h-3 rounded-full bg-green-500/60" />
             </div>
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">MeepleStation Preview</span>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{t.landing.previewTitle}</span>
             <div className="w-10" />
           </div>
           {/* Mockup Content */}
@@ -145,7 +155,7 @@ export default function Home() {
               <div className="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
                 <Gamepad2 className="w-4 h-4" />
               </div>
-              <span className="font-bold text-xs text-white">Active Match</span>
+              <span className="font-bold text-xs text-white">{t.landing.previewActive}</span>
               <span className="text-[10px] text-slate-500">Ark Nova — Turn 12</span>
               <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden mt-1">
                 <div className="h-full w-2/3 bg-brand-500 rounded-full" />
@@ -155,7 +165,7 @@ export default function Home() {
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
                 <Users className="w-4 h-4" />
               </div>
-              <span className="font-bold text-xs text-white">Gaming Circle</span>
+              <span className="font-bold text-xs text-white">{t.landing.previewGroup}</span>
               <span className="text-[10px] text-slate-500">Friday Boardgame Night</span>
               <div className="flex -space-x-2 mt-1">
                 <span className="w-5 h-5 rounded-full bg-slate-800 border border-slate-950 flex items-center justify-center text-[7px] font-bold">A</span>
@@ -167,10 +177,10 @@ export default function Home() {
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Library className="w-4 h-4" />
               </div>
-              <span className="font-bold text-xs text-white">BGG Collection</span>
+              <span className="font-bold text-xs text-white">{t.landing.previewBgg}</span>
               <span className="text-[10px] text-slate-500">42 Games Imported</span>
               <div className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10 mt-1 w-fit">
-                Sync OK
+                {t.landing.previewBggStatus}
               </div>
             </div>
           </div>
@@ -182,10 +192,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col gap-12">
           <div className="text-center flex flex-col gap-3">
             <h2 className="text-3xl font-display font-bold text-white tracking-tight">
-              A Premium Companion for Board Gamers
+              {t.landing.featuresTitle}
             </h2>
             <p className="text-slate-400 text-sm max-w-lg mx-auto">
-              Everything you need at the table, wrapped in a beautiful interface built to respect your screen space.
+              {t.landing.featuresSubtitle}
             </p>
           </div>
 
@@ -196,10 +206,10 @@ export default function Home() {
                 <Gamepad2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold font-display text-white">
-                Game Session Tracker
+                {t.landing.feat1Title}
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Log active game scores, adjust player standings, and record timers. Review historical play logs in deep detail.
+                {t.landing.feat1Desc}
               </p>
             </div>
 
@@ -209,10 +219,10 @@ export default function Home() {
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold font-display text-white">
-                Gaming Circles
+                {t.landing.feat2Title}
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Create playing groups, invite members, and build custom leaderboards. Compare matches, points, and win rates head-to-head.
+                {t.landing.feat2Desc}
               </p>
             </div>
 
@@ -222,10 +232,10 @@ export default function Home() {
                 <Library className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold font-display text-white">
-                Ludoteca (BGG Sync)
+                {t.landing.feat3Title}
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Enter your BoardGameGeek nickname and sync your collection in seconds. Select games from your library to start sessions.
+                {t.landing.feat3Desc}
               </p>
             </div>
           </div>
@@ -236,27 +246,23 @@ export default function Home() {
       <section className="w-full py-16 px-6 border-t border-slate-900/80 max-w-6xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="flex flex-col gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold font-display text-brand-500">100%</span>
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Free to Play</span>
+            <span className="text-3xl md:text-4xl font-extrabold font-display text-brand-500">{t.landing.statFree}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold font-display text-blue-400">PWA</span>
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Installable Web App</span>
+            <span className="text-3xl md:text-4xl font-extrabold font-display text-blue-400">{t.landing.statPwa}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold font-display text-emerald-400">Offline</span>
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Ready for Tabletop</span>
+            <span className="text-3xl md:text-4xl font-extrabold font-display text-emerald-400">{t.landing.statOffline}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-3xl md:text-4xl font-extrabold font-display text-purple-400">BGG</span>
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Native Library Sync</span>
+            <span className="text-3xl md:text-4xl font-extrabold font-display text-purple-400">{t.landing.statBgg}</span>
           </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="w-full border-t border-slate-900 bg-slate-950/60 py-8 px-6 text-center text-xs text-slate-500 mt-auto">
-        <p>MeepleStation © 2026. Made with 🎲 for board game lovers worldwide.</p>
+        <p>{t.landing.footerText}</p>
       </footer>
 
     </div>
