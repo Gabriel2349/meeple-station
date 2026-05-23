@@ -38,7 +38,7 @@ interface UserSearchResult {
 export default function NewSessionPage() {
   const router = useRouter();
   const { user, isGuest, isLoading: isAuthLoading } = useRequireAuth(true);
-  const { t } = useLanguageStore();
+  const { t, language } = useLanguageStore();
   const guestStore = useGuestSessionStore();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -60,6 +60,7 @@ export default function NewSessionPage() {
 
   // Game
   const [gameName, setGameName] = useState("");
+  const [hasRounds, setHasRounds] = useState(false);
 
   // Create
   const [creating, setCreating] = useState(false);
@@ -180,7 +181,8 @@ export default function NewSessionPage() {
       // Local guest session
       guestStore.createSession(
         gameName.trim(),
-        activePlayers.map((p) => p.display_name)
+        activePlayers.map((p) => p.display_name),
+        hasRounds
       );
       router.push("/dashboard/sessions/local");
       return;
@@ -195,6 +197,7 @@ export default function NewSessionPage() {
         mode,
         group_id: selectedGroupId || undefined,
         created_by: user.id,
+        has_rounds: hasRounds,
         players: activePlayers.map((p) => ({
           profile_id: p.profile_id,
           display_name: p.display_name,
@@ -489,6 +492,27 @@ export default function NewSessionPage() {
               autoFocus
               className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3.5 px-4 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/10 transition-all"
             />
+          </div>
+
+          {/* Rounds Option Toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-900/40 border border-slate-850 rounded-xl">
+            <div className="flex flex-col gap-0.5 text-left">
+              <span className="text-sm font-semibold text-white">
+                {t.sessions.enableRoundsLabel}
+              </span>
+              <span className="text-xs text-slate-500">
+                {language === "es" ? "Permite controlar el número de ronda actual." : "Allows tracking the current round number."}
+              </span>
+            </div>
+            <button
+              onClick={() => setHasRounds(!hasRounds)}
+              type="button"
+              className={`w-9 h-5 rounded-full p-0.5 transition-all ${
+                hasRounds ? "bg-brand-500 flex justify-end" : "bg-slate-850 flex justify-start"
+              }`}
+            >
+              <span className="w-4 h-4 bg-white rounded-full shadow" />
+            </button>
           </div>
 
           {createError && (

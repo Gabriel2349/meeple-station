@@ -18,8 +18,11 @@ export function BottomNav() {
   const pathname = usePathname();
   const { t } = useLanguageStore();
   const { isGuest } = useAuthStore();
-  const { status: timerStatus, timeLeft, players, currentIdx } = useTimerStore();
-  const timerRunning = timerStatus === "running" || timerStatus === "paused";
+  const timer = useTimerStore();
+  const timerRunning =
+    (timer.status === "running" || timer.status === "paused") &&
+    (isGuest ? timer.sessionId === "guest-local" : timer.sessionId !== "guest-local");
+  const { timeLeft, players, currentIdx } = timer;
 
   const isActive = (tab: (typeof tabs)[number]) => {
     if ("exact" in tab && tab.exact) return pathname === tab.href;

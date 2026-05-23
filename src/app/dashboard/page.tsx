@@ -24,6 +24,7 @@ export default function DashboardPage() {
 
   const [stats, setStats] = useState({
     matchesPlayed: 0,
+    gamesPlayed: 0,
     winRate: 0,
     timePlayedMin: 0,
     favoriteGame: "—",
@@ -64,6 +65,7 @@ export default function DashboardPage() {
         });
 
         const winRate = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+        const gamesPlayed = Object.keys(gameCounts).length;
 
         let favoriteGame = "—";
         let maxCount = 0;
@@ -76,6 +78,7 @@ export default function DashboardPage() {
 
         setStats({
           matchesPlayed,
+          gamesPlayed,
           winRate,
           timePlayedMin: totalTimeMin,
           favoriteGame,
@@ -221,9 +224,10 @@ export default function DashboardPage() {
             <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center mt-2">
             {[
               { val: stats.matchesPlayed.toString(), label: t.dashboard.matchesPlayed },
+              { val: stats.gamesPlayed.toString(), label: t.dashboard.gamesPlayed },
               { val: `${stats.winRate}%`, label: t.dashboard.winRate },
               { val: formatTimePlayed(stats.timePlayedMin), label: t.dashboard.timePlayed },
               { val: stats.favoriteGame, label: t.dashboard.favoriteGame },

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "@/utils/supabaseClient";
+import { useTimerStore } from "./useTimerStore";
 
 interface Profile {
   id: string;
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setGuest: (name: string) => {
+        useTimerStore.getState().clearTimer();
         set({
           guestName: name,
           isGuest: true,
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user: Profile | null) => {
+        useTimerStore.getState().clearTimer();
         set({
           user,
           isGuest: false,
@@ -58,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true });
         try {
+          useTimerStore.getState().clearTimer();
           const { error } = await supabase.auth.signOut();
           if (error) throw error;
           set({

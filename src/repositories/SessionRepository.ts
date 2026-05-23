@@ -24,6 +24,8 @@ export interface GameSession {
   started_at: string;
   finished_at: string | null;
   created_at: string;
+  has_rounds: boolean;
+  current_round: number;
   session_players?: SessionPlayer[];
 }
 
@@ -33,6 +35,7 @@ export interface CreateSessionInput {
   mode: SessionMode;
   group_id?: string;
   created_by: string;
+  has_rounds?: boolean;
   players: {
     profile_id?: string;   // registered user
     display_name: string;  // always required
@@ -54,6 +57,8 @@ export const SessionRepository = {
         group_id: input.group_id || null,
         created_by: input.created_by,
         status: "active",
+        has_rounds: input.has_rounds || false,
+        current_round: 1,
       })
       .select()
       .single();
@@ -160,6 +165,18 @@ export const SessionRepository = {
     const { error } = await supabase
       .from("game_sessions")
       .delete()
+      .eq("id", sessionId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  /**
+   * Update the current round of a session.
+   */
+  async updateSessionRound(sessionId: string, round: number): Promise<void> {
+    const { error } = await supabase
+      .from("game_sessions")
+      .update({ current_round: Math.max(1, round) })
       .eq("id", sessionId);
 
     if (error) throw new Error(error.message);

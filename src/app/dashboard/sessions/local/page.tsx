@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useGuestSessionStore } from "@/store/useGuestSessionStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
@@ -104,12 +104,29 @@ function TimerPanel({ playerNames, t }: {
   );
 }
 
-export default function GuestSessionPage() {
+function GuestSessionContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionIdParam = searchParams.get("id");
+
   const { t } = useLanguageStore();
-  const { session, updateScore, finishSession, clearSession } = useGuestSessionStore();
+  const {
+    session: activeSession,
+    history,
+    updateScore,
+    updateRound,
+    finishSession,
+    clearSession,
+    deleteHistorySession,
+  } = useGuestSessionStore();
+
   const [showFlash, setShowFlash] = useState(false);
   const [finishing, setFinishing] = useState(false);
+
+  // If a session ID parameter is provided, we try to load it from active session or history
+  const session = sessionIdParam
+    ? (activeSession?.id === sessionIdParam ? activeSession : history.find((s) => s.id === sessionIdParam))
+    : activeSession;
 
   // ── Clean up timer store if this guest session has finished ─────────────────
   useEffect(() => {
@@ -155,8 +172,8 @@ export default function GuestSessionPage() {
     setTimeout(() => setFinishing(false), 500);
   };
 
-  const handleClear = () => {
-    if (!confirm("Clear this session?")) return;
+  const handleClearActive = () => {
+    if (!confirm(t.sessions.closeActiveConfirm)) return;
     clearSession();
     router.push("/dashboard/sessions");
   };
@@ -169,7 +186,7 @@ export default function GuestSessionPage() {
   };
 
   return (
-    <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col gap-6 animate-fade-in">
       {showFlash && (
         <FlashPicker
           players={session.players.map((p) => p.display_name)}
@@ -224,6 +241,50 @@ export default function GuestSessionPage() {
         </div>
       )}
 
+      {/* Round Counter */}
+      {session.has_rounds && (
+        <div className="glass-card border-slate-800/60 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/20">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                {t.sessions.round}
+              </span>
+              <span className="font-display font-bold text-lg text-white">
+                #{session.current_round || 1}
+              </span>
+            </div>
+          </div>
+
+          {isActive && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const current = session.current_round || 1;
+                  updateRound(current - 1);
+                }}
+                disabled={(session.current_round || 1) <= 1}
+                className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer disabled:opacity-30"
+                title={t.sessions.prevRound}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  const current = session.current_round || 1;
+                  updateRound(current + 1);
+                }}
+                className="py-1.5 px-4 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-xl transition-all cursor-pointer text-xs font-bold"
+              >
+                {t.sessions.nextRound}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Timer */}
       {isActive && <TimerPanel playerNames={session.players.map((p) => p.display_name)} t={t} />}
 
@@ -237,7 +298,14 @@ export default function GuestSessionPage() {
           return (
             <div key={player.id} className={`glass-card p-4 border transition-all ${isWinner ? "border-brand-500/30 bg-brand-500/5" : "border-slate-800/60"}`}>
               <div className="flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm border shrink-0 ${rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30" : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600" : "bg-slate-900 text-slate-400 border-slate-800"}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm border shrink-0 ${
+                  isActive
+                    ? "bg-slate-900 text-slate-400 border-slate-800"
+                    : rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30"
+                    : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600"
+                    : rank === 2 ? "bg-amber-950/40 text-amber-600 border-amber-900/30"
+                    : "bg-slate-900 text-slate-400 border-slate-800"
+                }`}>
                   {rank + 1}
                 </div>
                 <span className="font-semibold text-white text-sm flex-1">{player.display_name}</span>
@@ -269,12 +337,24 @@ export default function GuestSessionPage() {
         })}
       </section>
 
-      {/* Clear session */}
-      {!isActive && (
-        <button onClick={handleClear} className="w-full py-3 px-4 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl transition-all text-sm cursor-pointer">
-          {t.common.delete} session
+      {/* Clear active session */}
+      {isActive && (
+        <button onClick={handleClearActive} className="w-full py-3 px-4 bg-slate-900/50 hover:bg-red-950/20 border border-slate-800 hover:border-red-950/30 text-slate-400 hover:text-red-400 rounded-xl transition-all text-sm cursor-pointer">
+          {t.sessions.closeActiveSession}
         </button>
       )}
     </div>
+  );
+}
+
+export default function GuestSessionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center p-6 text-white min-h-[60vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
+      </div>
+    }>
+      <GuestSessionContent />
+    </Suspense>
   );
 }
