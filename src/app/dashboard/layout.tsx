@@ -48,6 +48,7 @@ export default function DashboardLayout({
           {/* Desktop nav tabs */}
           <nav className="hidden md:flex items-center gap-1">
             {[
+              { label: t.nav.home, href: "/dashboard" },
               { label: t.nav.sessions, href: "/dashboard/sessions" },
               { label: t.nav.circles, href: "/dashboard/groups" },
               { label: t.nav.library, href: "#", disabled: true },
