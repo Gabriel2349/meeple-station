@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
+import { SessionRepository } from "@/repositories/SessionRepository";
 import {
   Gamepad2,
   Users,
@@ -19,6 +21,82 @@ export default function DashboardPage() {
   const { user, isGuest, isLoading } = useRequireAuth(true);
   const { guestName } = useAuthStore();
   const { t } = useLanguageStore();
+
+  const [stats, setStats] = useState({
+    matchesPlayed: 0,
+    winRate: 0,
+    timePlayedMin: 0,
+    favoriteGame: "—",
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLoading || isGuest || !user) return;
+
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const sessions = await SessionRepository.getMySessions();
+        const finishedSessions = sessions.filter((s) => s.status === "finished");
+
+        const matchesPlayed = finishedSessions.length;
+
+        let wins = 0;
+        let totalTimeMin = 0;
+        const gameCounts: Record<string, number> = {};
+
+        finishedSessions.forEach((s) => {
+          // Check if user won
+          const myPlayer = s.session_players?.find((p) => p.profile_id === user.id);
+          if (myPlayer && myPlayer.position === 1) {
+            wins++;
+          }
+
+          // Duration
+          if (s.finished_at) {
+            const durationMs = new Date(s.finished_at).getTime() - new Date(s.started_at).getTime();
+            totalTimeMin += Math.round(durationMs / 60000);
+          }
+
+          // Count games
+          const gameName = s.game_name || "—";
+          gameCounts[gameName] = (gameCounts[gameName] || 0) + 1;
+        });
+
+        const winRate = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+        let favoriteGame = "—";
+        let maxCount = 0;
+        Object.entries(gameCounts).forEach(([game, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            favoriteGame = game;
+          }
+        });
+
+        setStats({
+          matchesPlayed,
+          winRate,
+          timePlayedMin: totalTimeMin,
+          favoriteGame,
+        });
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [user, isGuest, isLoading]);
+
+  const formatTimePlayed = (mins: number) => {
+    if (mins === 0) return "0m";
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    if (hours === 0) return `${remainingMins}m`;
+    return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+  };
 
   if (isLoading) {
     return (
@@ -120,24 +198,48 @@ export default function DashboardPage() {
             {t.dashboard.statsTitle}
           </h3>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mt-2">
-          {[
-            { val: "0", label: t.dashboard.matchesPlayed },
-            { val: "0%", label: t.dashboard.winRate },
-            { val: "0h", label: t.dashboard.timePlayed },
-            { val: "--", label: t.dashboard.favoriteGame },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-slate-900/30 border border-slate-900/80 rounded-xl p-4"
-            >
-              <span className="block text-2xl font-bold font-display text-white">
-                {s.val}
-              </span>
-              <span className="text-xs text-slate-400">{s.label}</span>
+        {isGuest ? (
+          <div className="mt-2 p-6 bg-brand-500/5 border border-brand-500/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:bg-brand-500/10 relative overflow-hidden">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-brand-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex flex-col gap-1 text-left">
+              <h4 className="font-display font-bold text-white text-base">
+                {t.dashboard.statsGuestTitle}
+              </h4>
+              <p className="text-slate-400 text-xs max-w-md">
+                {t.dashboard.statsGuestWarning}
+              </p>
             </div>
-          ))}
-        </div>
+            <Link
+              href="/auth/register"
+              className="bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs py-2.5 px-5 rounded-xl border border-brand-600/30 transition-all text-center whitespace-nowrap cursor-pointer shadow-md shadow-brand-950/20"
+            >
+              {t.auth.register} →
+            </Link>
+          </div>
+        ) : statsLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mt-2">
+            {[
+              { val: stats.matchesPlayed.toString(), label: t.dashboard.matchesPlayed },
+              { val: `${stats.winRate}%`, label: t.dashboard.winRate },
+              { val: formatTimePlayed(stats.timePlayedMin), label: t.dashboard.timePlayed },
+              { val: stats.favoriteGame, label: t.dashboard.favoriteGame },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="bg-slate-900/30 border border-slate-900/80 rounded-xl p-4"
+              >
+                <span className="block text-xl md:text-2xl font-bold font-display text-white truncate max-w-full px-1" title={s.val}>
+                  {s.val}
+                </span>
+                <span className="text-xs text-slate-400">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

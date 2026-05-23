@@ -52,6 +52,8 @@ const es = {
     winRate: "Win Rate",
     timePlayed: "Tiempo Jugado",
     favoriteGame: "Juego Favorito",
+    statsGuestTitle: "Guarda tus estadísticas",
+    statsGuestWarning: "Registra una cuenta para guardar tus partidas, ver tus estadísticas de juego, win rates, tiempos y juegos favoritos.",
   },
   sessions: {
     title: "Partidas",
@@ -197,6 +199,8 @@ const en: typeof es = {
     winRate: "Win Rate",
     timePlayed: "Time Played",
     favoriteGame: "Favorite Game",
+    statsGuestTitle: "Save your statistics",
+    statsGuestWarning: "Register an account to save your matches, view your play statistics, win rates, durations, and favorite games.",
   },
   sessions: {
     title: "Game Sessions",

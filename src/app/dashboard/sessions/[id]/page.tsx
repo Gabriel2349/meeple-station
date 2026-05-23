@@ -39,10 +39,11 @@ interface PageProps {
 }
 
 // ── Timer Panel Component ──────────────────────────────────────────────────────
-function TimerPanel({ players, sessionId, t }: {
+function TimerPanel({ players, sessionId, t, onTimerAction }: {
   players: SessionPlayer[];
   sessionId: string;
   t: Translations;
+  onTimerAction?: (action: any) => void;
 }) {
   const timer = useTimerStore();
   const [showSetup, setShowSetup] = useState(false);
@@ -53,11 +54,13 @@ function TimerPanel({ players, sessionId, t }: {
   const handleSetup = () => {
     const secs = parseInt(inputSeconds, 10);
     if (!secs || secs < 5) return;
+    const timerPlayers = players.map((p) => ({ id: p.id, name: p.display_name }));
     timer.setupTimer(
       sessionId,
-      players.map((p) => ({ id: p.id, name: p.display_name })),
+      timerPlayers,
       secs
     );
+    onTimerAction?.({ type: "setup", players: timerPlayers, timeLimit: secs });
     setShowSetup(false);
   };
 
@@ -156,7 +159,10 @@ function TimerPanel({ players, sessionId, t }: {
           {/* Controls */}
           <div className="flex items-center justify-center gap-2">
             <button
-              onClick={timer.resetTurn}
+              onClick={() => {
+                timer.resetTurn();
+                onTimerAction?.({ type: "reset" });
+              }}
               disabled={timer.status === "idle"}
               className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer disabled:opacity-30"
               title={t.sessions.timerReset}
@@ -166,7 +172,10 @@ function TimerPanel({ players, sessionId, t }: {
 
             {timer.status === "idle" && (
               <button
-                onClick={timer.startTimer}
+                onClick={() => {
+                  timer.startTimer();
+                  onTimerAction?.({ type: "start" });
+                }}
                 className="py-2.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold border border-brand-600/30 transition-all cursor-pointer text-sm flex items-center gap-2"
               >
                 <Play className="w-4 h-4" /> {t.sessions.timerStart}
@@ -174,7 +183,10 @@ function TimerPanel({ players, sessionId, t }: {
             )}
             {timer.status === "running" && (
               <button
-                onClick={timer.pauseTimer}
+                onClick={() => {
+                  timer.pauseTimer();
+                  onTimerAction?.({ type: "pause" });
+                }}
                 className="py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold border border-slate-700 transition-all cursor-pointer text-sm flex items-center gap-2"
               >
                 <Pause className="w-4 h-4" /> {t.sessions.timerPause}
@@ -182,7 +194,10 @@ function TimerPanel({ players, sessionId, t }: {
             )}
             {timer.status === "paused" && (
               <button
-                onClick={timer.resumeTimer}
+                onClick={() => {
+                  timer.resumeTimer();
+                  onTimerAction?.({ type: "resume" });
+                }}
                 className="py-2.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold border border-brand-600/30 transition-all cursor-pointer text-sm flex items-center gap-2"
               >
                 <Play className="w-4 h-4" /> {t.sessions.timerResume}
@@ -190,7 +205,10 @@ function TimerPanel({ players, sessionId, t }: {
             )}
 
             <button
-              onClick={timer.skipTurn}
+              onClick={() => {
+                timer.skipTurn();
+                onTimerAction?.({ type: "skip" });
+              }}
               disabled={timer.status === "idle"}
               className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer disabled:opacity-30"
               title={t.sessions.timerSkip}
@@ -231,6 +249,24 @@ export default function SessionDetailPage({ params }: PageProps) {
   const [elapsed, setElapsed] = useState("0m");
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const sendTimerAction = useCallback((action: { type: string; [key: string]: any }) => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "timer-action",
+        payload: action,
+      });
+    }
+  }, []);
+
+  const handleWinnerChosen = useCallback((winnerName: string) => {
+    const idx = players.findIndex((p) => p.display_name === winnerName);
+    if (idx !== -1) {
+      useTimerStore.setState({ currentIdx: idx });
+      sendTimerAction({ type: "sync-index", currentIdx: idx });
+    }
+  }, [players, sendTimerAction]);
 
   // ── Load session ──────────────────────────────────────────────────────────
   const loadSession = useCallback(async () => {
@@ -319,7 +355,83 @@ export default function SessionDetailPage({ params }: PageProps) {
           loadSession();
         }
       )
-      .subscribe();
+      .on(
+        "broadcast",
+        { event: "timer-action" },
+        (payload) => {
+          const action = payload.payload;
+          const timerState = useTimerStore.getState();
+          if (action.type === "setup") {
+            timerState.setupTimer(sessionId, action.players, action.timeLimit);
+          } else if (action.type === "start") {
+            if (timerState.status === "idle") timerState.startTimer();
+          } else if (action.type === "pause") {
+            timerState.pauseTimer();
+          } else if (action.type === "resume") {
+            timerState.resumeTimer();
+          } else if (action.type === "skip") {
+            timerState.skipTurn();
+          } else if (action.type === "reset") {
+            timerState.resetTurn();
+          } else if (action.type === "clear") {
+            timerState.clearTimer();
+          } else if (action.type === "sync-index") {
+            useTimerStore.setState({ currentIdx: action.currentIdx });
+          }
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "request-sync" },
+        () => {
+          const state = useTimerStore.getState();
+          if (state.sessionId === sessionId) {
+            channel.send({
+              type: "broadcast",
+              event: "timer-state",
+              payload: {
+                timeLimit: state.timeLimit,
+                timeLeft: state.timeLeft,
+                status: state.status,
+                currentIdx: state.currentIdx,
+                players: state.players,
+              },
+            });
+          }
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "timer-state" },
+        (payload) => {
+          const state = payload.payload;
+          const timerState = useTimerStore.getState();
+          if (timerState.sessionId !== sessionId || timerState.status === "idle") {
+            timerState.clearTimer();
+            useTimerStore.setState({
+              sessionId,
+              timeLimit: state.timeLimit,
+              timeLeft: state.timeLeft,
+              status: state.status,
+              currentIdx: state.currentIdx,
+              players: state.players,
+            });
+            if (state.status === "running") {
+              useTimerStore.setState({ status: "paused" });
+              useTimerStore.getState().resumeTimer();
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          channel.send({
+            type: "broadcast",
+            event: "request-sync",
+            payload: {},
+          });
+        }
+      });
 
     channelRef.current = channel;
     return () => {
@@ -331,10 +443,9 @@ export default function SessionDetailPage({ params }: PageProps) {
   const getDisplayScore = (player: SessionPlayer) =>
     pendingScores[player.id] !== undefined ? pendingScores[player.id] : player.score;
 
-  const changeScore = (player: SessionPlayer, delta: number) => {
+  const saveScore = (player: SessionPlayer, nextValue: number) => {
     if (session?.status === "finished") return;
-    const current = getDisplayScore(player);
-    const next = Math.max(0, current + delta);
+    const next = Math.max(0, nextValue);
     setPendingScores((prev) => ({ ...prev, [player.id]: next }));
 
     // Debounce save
@@ -355,6 +466,11 @@ export default function SessionDetailPage({ params }: PageProps) {
         setSavingScores((prev) => ({ ...prev, [player.id]: false }));
       }
     }, 700);
+  };
+
+  const changeScore = (player: SessionPlayer, delta: number) => {
+    const current = getDisplayScore(player);
+    saveScore(player, current + delta);
   };
 
   // ── Finish session ────────────────────────────────────────────────────────
@@ -385,9 +501,15 @@ export default function SessionDetailPage({ params }: PageProps) {
 
   const isOwner = user && session?.created_by === user.id;
   const isActive = session?.status === "active";
-  const sortedPlayers = [...players].sort(
-    (a, b) => getDisplayScore(b) - getDisplayScore(a)
-  );
+
+  // Scoreboard order: Keep original turn order (by joined_at) while playing.
+  // Sort by ranking/score ONLY when the match is completed/finished.
+  const displayPlayers = isActive
+    ? [...players].sort((a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime())
+    : [...players].sort((a, b) => {
+        if (a.position !== null && b.position !== null) return a.position - b.position;
+        return getDisplayScore(b) - getDisplayScore(a);
+      });
 
   if (isAuthLoading || loading) {
     return (
@@ -413,12 +535,13 @@ export default function SessionDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col gap-6 animate-fade-in">
       {/* Flash Picker */}
       {showFlash && (
         <FlashPicker
           players={players.map((p) => p.display_name)}
           onClose={() => setShowFlash(false)}
+          onWinnerChosen={handleWinnerChosen}
         />
       )}
 
@@ -454,7 +577,7 @@ export default function SessionDetailPage({ params }: PageProps) {
             <p className="font-bold text-white text-sm">{t.sessions.sessionComplete}</p>
             <p className="text-xs text-slate-400 mt-0.5">
               🏆 {t.sessions.winner}:{" "}
-              <strong className="text-brand-400">{sortedPlayers[0]?.display_name}</strong>
+              <strong className="text-brand-400">{displayPlayers[0]?.display_name}</strong>
               {" "}· {getDuration()}
             </p>
           </div>
@@ -476,7 +599,7 @@ export default function SessionDetailPage({ params }: PageProps) {
 
       {/* Turn Timer */}
       {isActive && (
-        <TimerPanel players={players} sessionId={sessionId} t={t} />
+        <TimerPanel players={players} sessionId={sessionId} t={t} onTimerAction={sendTimerAction} />
       )}
 
       {/* Scoreboard */}
@@ -486,7 +609,7 @@ export default function SessionDetailPage({ params }: PageProps) {
           {t.sessions.scoreboard}
         </h2>
 
-        {sortedPlayers.map((player, rank) => {
+        {displayPlayers.map((player, rank) => {
           const score = getDisplayScore(player);
           const isSaving = savingScores[player.id];
           const isWinner = !isActive && rank === 0;
@@ -523,10 +646,23 @@ export default function SessionDetailPage({ params }: PageProps) {
                     </button>
                   )}
 
-                  <div className="min-w-[64px] text-center">
-                    <span className={`font-display font-bold text-2xl ${isWinner ? "text-brand-400" : "text-white"} ${isSaving ? "opacity-60" : ""}`}>
-                      {score}
-                    </span>
+                  <div className="min-w-[64px] text-center flex items-center justify-center gap-1">
+                    {isActive ? (
+                      <input
+                        type="number"
+                        min={0}
+                        value={score}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          saveScore(player, isNaN(val) ? 0 : val);
+                        }}
+                        className="w-16 bg-slate-900 border border-slate-800 text-center font-display font-bold text-xl py-1 rounded-lg focus:outline-none focus:border-brand-500/50"
+                      />
+                    ) : (
+                      <span className={`font-display font-bold text-2xl ${isWinner ? "text-brand-400" : "text-white"} ${isSaving ? "opacity-60" : ""}`}>
+                        {score}
+                      </span>
+                    )}
                     {isSaving && <Loader2 className="w-3 h-3 animate-spin text-slate-500 inline ml-1" />}
                   </div>
 

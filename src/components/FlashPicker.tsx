@@ -7,9 +7,10 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 interface FlashPickerProps {
   players: string[];
   onClose: () => void;
+  onWinnerChosen?: (winnerName: string) => void;
 }
 
-export function FlashPicker({ players, onClose }: FlashPickerProps) {
+export function FlashPicker({ players, onClose, onWinnerChosen }: FlashPickerProps) {
   const { t } = useLanguageStore();
   const [phase, setPhase] = useState<"picking" | "result">("picking");
   const [highlighted, setHighlighted] = useState(0);
@@ -31,8 +32,10 @@ export function FlashPicker({ players, onClose }: FlashPickerProps) {
       setHighlighted(currentStep % players.length);
 
       if (currentStep >= totalSteps) {
-        setWinner(players[winnerIdx]);
+        const selectedWinner = players[winnerIdx];
+        setWinner(selectedWinner);
         setPhase("result");
+        onWinnerChosen?.(selectedWinner);
         return;
       }
 

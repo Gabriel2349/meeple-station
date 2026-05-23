@@ -53,10 +53,20 @@ export const useTimerStore = create<TimerState>()((set, get) => ({
 
   setupTimer: (sessionId, players, timeLimitSeconds) => {
     _stopInterval();
+    const oldIdx = get().currentIdx;
+    const oldPlayers = get().players;
+    let nextIdx = 0;
+    if (oldPlayers.length > 0 && oldIdx >= 0 && oldIdx < oldPlayers.length) {
+      const activePlayerName = oldPlayers[oldIdx].name;
+      const newIdx = players.findIndex((p) => p.name === activePlayerName);
+      if (newIdx !== -1) {
+        nextIdx = newIdx;
+      }
+    }
     set({
       sessionId,
       players,
-      currentIdx: 0,
+      currentIdx: nextIdx,
       timeLimit: timeLimitSeconds,
       timeLeft: timeLimitSeconds,
       status: "idle",

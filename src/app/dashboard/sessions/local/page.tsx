@@ -136,7 +136,17 @@ export default function GuestSessionPage() {
   }
 
   const isActive = session.status === "active";
-  const sortedPlayers = [...session.players].sort((a, b) => b.score - a.score);
+  const displayPlayers = isActive
+    ? session.players
+    : [...session.players].sort((a, b) => b.score - a.score);
+  const winnerPlayer = [...session.players].sort((a, b) => b.score - a.score)[0];
+
+  const handleWinnerChosen = (winnerName: string) => {
+    const idx = session.players.findIndex((p) => p.display_name === winnerName);
+    if (idx !== -1) {
+      useTimerStore.setState({ currentIdx: idx });
+    }
+  };
 
   const handleFinish = () => {
     if (!confirm(`${t.sessions.finishSession}?`)) return;
@@ -160,7 +170,13 @@ export default function GuestSessionPage() {
 
   return (
     <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col gap-6">
-      {showFlash && <FlashPicker players={session.players.map((p) => p.display_name)} onClose={() => setShowFlash(false)} />}
+      {showFlash && (
+        <FlashPicker
+          players={session.players.map((p) => p.display_name)}
+          onClose={() => setShowFlash(false)}
+          onWinnerChosen={handleWinnerChosen}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -188,7 +204,7 @@ export default function GuestSessionPage() {
           <div className="p-3 bg-brand-500/10 rounded-xl border border-brand-500/20 text-brand-400"><Trophy className="w-6 h-6" /></div>
           <div>
             <p className="font-bold text-white text-sm">{t.sessions.sessionComplete}</p>
-            <p className="text-xs text-slate-400 mt-0.5">🏆 {sortedPlayers[0]?.display_name} · {getDuration()}</p>
+            <p className="text-xs text-slate-400 mt-0.5">🏆 {winnerPlayer?.display_name} · {getDuration()}</p>
           </div>
         </div>
       )}
@@ -216,25 +232,41 @@ export default function GuestSessionPage() {
         <h2 className="font-display font-bold text-white text-lg flex items-center gap-2">
           <Users className="w-5 h-5 text-brand-400" /> {t.sessions.scoreboard}
         </h2>
-        {sortedPlayers.map((player, rank) => (
-          <div key={player.id} className={`glass-card p-4 border transition-all ${!isActive && rank === 0 ? "border-brand-500/30 bg-brand-500/5" : "border-slate-800/60"}`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm border shrink-0 ${rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30" : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600" : "bg-slate-900 text-slate-400 border-slate-800"}`}>
-                {rank + 1}
-              </div>
-              <span className="font-semibold text-white text-sm flex-1">{player.display_name}</span>
-              <div className="flex items-center gap-2">
-                {isActive && (
-                  <button onClick={() => updateScore(player.id, Math.max(0, player.score - 1))} className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-red-950/20 border border-slate-800 hover:border-red-900/30 text-slate-400 hover:text-red-400 transition-all cursor-pointer flex items-center justify-center"><Minus className="w-4 h-4" /></button>
-                )}
-                <span className={`font-display font-bold text-2xl min-w-[48px] text-center ${!isActive && rank === 0 ? "text-brand-400" : "text-white"}`}>{player.score}</span>
-                {isActive && (
-                  <button onClick={() => updateScore(player.id, player.score + 1)} className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-brand-950/20 border border-slate-800 hover:border-brand-900/30 text-slate-400 hover:text-brand-400 transition-all cursor-pointer flex items-center justify-center"><Plus className="w-4 h-4" /></button>
-                )}
+        {displayPlayers.map((player, rank) => {
+          const isWinner = !isActive && rank === 0;
+          return (
+            <div key={player.id} className={`glass-card p-4 border transition-all ${isWinner ? "border-brand-500/30 bg-brand-500/5" : "border-slate-800/60"}`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm border shrink-0 ${rank === 0 ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-white border-amber-500/30" : rank === 1 ? "bg-slate-700 text-slate-200 border-slate-600" : "bg-slate-900 text-slate-400 border-slate-800"}`}>
+                  {rank + 1}
+                </div>
+                <span className="font-semibold text-white text-sm flex-1">{player.display_name}</span>
+                <div className="flex items-center gap-2">
+                  {isActive && (
+                    <button onClick={() => updateScore(player.id, Math.max(0, player.score - 1))} className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-red-950/20 border border-slate-800 hover:border-red-900/30 text-slate-400 hover:text-red-400 transition-all cursor-pointer flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                  )}
+                  {isActive ? (
+                    <input
+                      type="number"
+                      min={0}
+                      value={player.score}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        updateScore(player.id, isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 bg-slate-900 border border-slate-800 text-center font-display font-bold text-xl py-1 rounded-lg focus:outline-none focus:border-brand-500/50 text-white"
+                    />
+                  ) : (
+                    <span className={`font-display font-bold text-2xl min-w-[48px] text-center ${isWinner ? "text-brand-400" : "text-white"}`}>{player.score}</span>
+                  )}
+                  {isActive && (
+                    <button onClick={() => updateScore(player.id, player.score + 1)} className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-brand-950/20 border border-slate-800 hover:border-brand-900/30 text-slate-400 hover:text-brand-400 transition-all cursor-pointer flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       {/* Clear session */}
